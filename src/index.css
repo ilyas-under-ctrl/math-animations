@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+@theme {
+  /* Common variables */
+  --color-surface: #FFFFFF;
+  --color-dark-surface: #0F172A;
+
+  --color-text-primary: #1E293B;
+  --color-text-secondary: #64748B;
+
+  --color-dark-text-primary: #F1F5F9;
+  --color-dark-text-secondary: #94A3B8;
+
+  /* Set specific colors */
+  --color-set-n: #3B82F6;
+  --color-set-z: #10B981;
+  --color-set-d: #F59E0B;
+  --color-set-q: #A855F7;
+  --color-set-r: #EF4444;
+}
+
+/* Base Styles */
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.dark body {
+  background-color: var(--color-dark-surface);
+  color: var(--color-dark-text-primary);
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-text-secondary);
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--color-dark-text-secondary);
+}
+
+/* Range Slider Styling */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  background: #E2E8F0;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.dark input[type="range"] {
+  background: #334155;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #64748B;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.dark input[type="range"]::-webkit-slider-thumb {
+  border-color: #0F172A;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+input[type="range"].accent-blue-500::-webkit-slider-thumb {
+  background: #3B82F6;
+}
+
+input[type="range"].accent-emerald-500::-webkit-slider-thumb {
+  background: #10B981;
+}
+
+/* Smooth Transitions for Theme Toggle */
+* {
+  transition-property: background-color, border-color, color;
+  transition-duration: 0.15s;
+  transition-timing-function: ease;
+}
+
+svg {
+  transition: none !important;
+}
