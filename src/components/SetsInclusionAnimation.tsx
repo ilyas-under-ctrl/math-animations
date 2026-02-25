@@ -75,6 +75,7 @@ function gcd(a: number, b: number): number {
 
 export default function SetsInclusionAnimation({ speed = 1 }: SetsInclusionProps) {
     const containerRef = useRef<HTMLDivElement>(null);
+    const introAnimatingRef = useRef(false);
     const { theme } = useTheme();
     const isDark = theme === 'dark';
 
@@ -82,6 +83,22 @@ export default function SetsInclusionAnimation({ speed = 1 }: SetsInclusionProps
     const [numberInput, setNumberInput] = useState('');
     const [highlightedSets, setHighlightedSets] = useState<string[]>([]);
     const [classificationResult, setClassificationResult] = useState<string>('');
+    const [visibleSets, setVisibleSets] = useState<Record<string, boolean>>({ R: true, Q: true, D: true, Z: true, N: true });
+
+    const setsMetaForToggle = [
+        { id: 'R', label: 'ℝ', color: '#EF4444' },
+        { id: 'Q', label: 'ℚ', color: '#A855F7' },
+        { id: 'D', label: 'ⅅ', color: '#F59E0B' },
+        { id: 'Z', label: 'ℤ', color: '#10B981' },
+        { id: 'N', label: 'ℕ', color: '#3B82F6' },
+    ];
+
+    const allVisible = Object.values(visibleSets).every(v => v);
+    const toggleSet = (id: string) => setVisibleSets(prev => ({ ...prev, [id]: !prev[id] }));
+    const toggleAll = () => {
+        const newVal = !allVisible;
+        setVisibleSets({ R: newVal, Q: newVal, D: newVal, Z: newVal, N: newVal });
+    };
 
     const handleClassify = useCallback(() => {
         if (!numberInput.trim()) {
@@ -145,6 +162,7 @@ export default function SetsInclusionAnimation({ speed = 1 }: SetsInclusionProps
             // Track whether the intro animation has finished
             let introComplete = false;
             const introTotalDuration = (sets.length - 1) * 800 / speed + 1500 / speed + 200;
+            introAnimatingRef.current = true;
 
             // Draw from largest to smallest
             const setGroups = svg.selectAll('g.set')
@@ -277,6 +295,7 @@ export default function SetsInclusionAnimation({ speed = 1 }: SetsInclusionProps
             // Enable pointer events after intro completes
             setTimeout(() => {
                 introComplete = true;
+                introAnimatingRef.current = false;
                 setGroups.style('pointer-events', 'auto');
             }, introTotalDuration);
 
@@ -308,6 +327,7 @@ export default function SetsInclusionAnimation({ speed = 1 }: SetsInclusionProps
                 const outer = sets[i];
                 const midR = (inner.radius + outer.radius) / 2;
                 inclusionGroup.append('text')
+                    .attr('class', `inclusion-symbol-${inner.id}-${outer.id}`)
                     .attr('x', cx - midR)
                     .attr('y', cy + 5)
                     .text('⊂')
@@ -492,10 +512,84 @@ export default function SetsInclusionAnimation({ speed = 1 }: SetsInclusionProps
         };
     }, [isDark, speed, selectedSet, highlightedSets]);
 
+    // Separate effect for visibility toggling — avoids re-rendering the entire D3 chart
+    useEffect(() => {
+        // Skip while intro animation is playing so staggered appearance works
+        if (introAnimatingRef.current) return;
+        if (!containerRef.current) return;
+        const svg = d3.select(containerRef.current).select('svg');
+        if (svg.empty()) return;
+
+        const setIds = ['R', 'Q', 'D', 'Z', 'N'];
+
+        // Toggle set groups (circle + label)
+        setIds.forEach(id => {
+            svg.select(`.set-${id}`)
+                .transition('visibility')
+                .duration(350)
+                .style('opacity', visibleSets[id] ? 1 : 0)
+                .style('pointer-events', visibleSets[id] ? 'auto' : 'none');
+        });
+
+        // Toggle floating number elements
+        svg.selectAll<SVGTextElement, any>('text.element')
+            .each(function (d) {
+                const vis = visibleSets[d.set];
+                d3.select(this)
+                    .transition('visibility')
+                    .duration(350)
+                    .style('opacity', vis ? 1 : 0)
+                    .style('pointer-events', vis ? 'auto' : 'none');
+            });
+
+        // Toggle inclusion symbols
+        for (let i = 0; i < setIds.length - 1; i++) {
+            // sets array order: R, Q, D, Z, N — sets[i+1] ⊂ sets[i]
+            const inner = setIds[i + 1];
+            const outer = setIds[i];
+            const bothVisible = visibleSets[inner] && visibleSets[outer];
+            svg.select(`.inclusion-symbol-${inner}-${outer}`)
+                .transition('visibility')
+                .duration(350)
+                .attr('opacity', bothVisible ? 0.5 : 0);
+        }
+    }, [visibleSets]);
+
     return (
         <div className="w-full h-full flex flex-col items-center">
             {/* SVG Container */}
             <div ref={containerRef} className="w-full flex-1 relative min-h-[350px]" />
+
+            {/* Layer Toggle Controls */}
+            <div className={`w-full max-w-lg mx-auto px-4 mb-2`}>
+                <div className={`flex items-center justify-center gap-2 flex-wrap`}>
+                    <button
+                        onClick={toggleAll}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 border ${allVisible
+                            ? (isDark ? 'bg-white/10 border-white/20 text-white hover:bg-white/20' : 'bg-slate-800 border-slate-700 text-white hover:bg-slate-700')
+                            : (isDark ? 'bg-transparent border-slate-600 text-slate-400 hover:border-slate-400' : 'bg-transparent border-slate-300 text-slate-500 hover:border-slate-500')
+                            }`}
+                    >
+                        Tout
+                    </button>
+                    <div className={`w-px h-5 ${isDark ? 'bg-slate-600' : 'bg-slate-300'}`} />
+                    {setsMetaForToggle.map(s => (
+                        <button
+                            key={s.id}
+                            onClick={() => toggleSet(s.id)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 border`}
+                            style={{
+                                backgroundColor: visibleSets[s.id] ? `${s.color}20` : 'transparent',
+                                borderColor: visibleSets[s.id] ? s.color : (isDark ? '#475569' : '#CBD5E1'),
+                                color: visibleSets[s.id] ? s.color : (isDark ? '#64748B' : '#94A3B8'),
+                                opacity: visibleSets[s.id] ? 1 : 0.6,
+                            }}
+                        >
+                            {s.label}
+                        </button>
+                    ))}
+                </div>
+            </div>
 
             {/* Number Classifier Input */}
             <div className={`w-full max-w-lg mx-auto px-4 mb-2`}>
