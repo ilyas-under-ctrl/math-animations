@@ -76,6 +76,8 @@ function gcd(a: number, b: number): number {
 export default function SetsInclusionAnimation({ speed = 1 }: SetsInclusionProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const introAnimatingRef = useRef(false);
+    const selectedSetRef = useRef<{ id: string, name: string, label: string, desc: string, examples: string, color: string } | null>(null);
+    const highlightedSetsRef = useRef<string[]>([]);
     const { theme } = useTheme();
     const isDark = theme === 'dark';
 
@@ -84,6 +86,10 @@ export default function SetsInclusionAnimation({ speed = 1 }: SetsInclusionProps
     const [highlightedSets, setHighlightedSets] = useState<string[]>([]);
     const [classificationResult, setClassificationResult] = useState<string>('');
     const [visibleSets, setVisibleSets] = useState<Record<string, boolean>>({ R: true, Q: true, D: true, Z: true, N: true });
+
+    // Keep refs in sync with state
+    selectedSetRef.current = selectedSet;
+    highlightedSetsRef.current = highlightedSets;
 
     const setsMetaForToggle = [
         { id: 'R', label: 'ℝ', color: '#EF4444' },
@@ -178,18 +184,18 @@ export default function SetsInclusionAnimation({ speed = 1 }: SetsInclusionProps
                 .attr('class', d => `circle-${d.id}`)
                 .attr('r', 0)
                 .attr('fill', d => {
-                    if (highlightedSets.length > 0) {
-                        return highlightedSets.includes(d.id)
+                    if (highlightedSetsRef.current.length > 0) {
+                        return highlightedSetsRef.current.includes(d.id)
                             ? (isDark ? `${d.color}35` : `${d.color}45`)
                             : (isDark ? `${d.color}05` : `${d.color}08`);
                     }
                     return isDark ? `${d.color}15` : `${d.color}20`;
                 })
                 .attr('stroke', d => d.color)
-                .attr('stroke-width', d => highlightedSets.includes(d.id) ? 3 : 2)
+                .attr('stroke-width', d => highlightedSetsRef.current.includes(d.id) ? 3 : 2)
                 .attr('stroke-dasharray', (_d, i) => i === 2 ? '5,5' : 'none')
                 .style('filter', d => {
-                    if (highlightedSets.includes(d.id)) return 'url(#glow)';
+                    if (highlightedSetsRef.current.includes(d.id)) return 'url(#glow)';
                     return isDark ? 'drop-shadow(0 0 8px rgba(0,0,0,0.5))' : 'none';
                 })
                 .on('mouseover', function (_event, d) {
@@ -239,16 +245,16 @@ export default function SetsInclusionAnimation({ speed = 1 }: SetsInclusionProps
                     if (!introComplete) return;
                     svg.selectAll('.subset-symbol').remove();
 
-                    if (selectedSet?.id !== d.id) {
+                    if (selectedSetRef.current?.id !== d.id) {
                         // Reset all circles
                         sets.forEach(s => {
                             svg.select(`.circle-${s.id}`)
                                 .transition('hover')
                                 .duration(200)
-                                .attr('stroke-width', highlightedSets.includes(s.id) ? 3 : 2)
+                                .attr('stroke-width', highlightedSetsRef.current.includes(s.id) ? 3 : 2)
                                 .attr('fill', () => {
-                                    if (highlightedSets.length > 0) {
-                                        return highlightedSets.includes(s.id)
+                                    if (highlightedSetsRef.current.length > 0) {
+                                        return highlightedSetsRef.current.includes(s.id)
                                             ? (isDark ? `${s.color}35` : `${s.color}45`)
                                             : (isDark ? `${s.color}05` : `${s.color}08`);
                                     }
@@ -309,7 +315,7 @@ export default function SetsInclusionAnimation({ speed = 1 }: SetsInclusionProps
                 .attr('font-size', '20px')
                 .attr('font-weight', 'bold')
                 .attr('fill', d => {
-                    if (highlightedSets.length > 0 && !highlightedSets.includes(d.id)) {
+                    if (highlightedSetsRef.current.length > 0 && !highlightedSetsRef.current.includes(d.id)) {
                         return isDark ? `${d.color}40` : `${d.color}50`;
                     }
                     return d.color;
@@ -390,7 +396,7 @@ export default function SetsInclusionAnimation({ speed = 1 }: SetsInclusionProps
                 .attr('text-anchor', 'middle')
                 .attr('alignment-baseline', 'middle')
                 .attr('fill', (d: any) => {
-                    if (highlightedSets.length > 0 && !highlightedSets.includes(d.set)) {
+                    if (highlightedSetsRef.current.length > 0 && !highlightedSetsRef.current.includes(d.set)) {
                         return isDark ? '#334155' : '#E2E8F0';
                     }
                     return isDark ? '#F1F5F9' : '#1E293B';
@@ -441,10 +447,10 @@ export default function SetsInclusionAnimation({ speed = 1 }: SetsInclusionProps
                         svg.select(`.circle-${s.id}`)
                             .transition('hover')
                             .duration(200)
-                            .attr('stroke-width', highlightedSets.includes(s.id) ? 3 : 2)
+                            .attr('stroke-width', highlightedSetsRef.current.includes(s.id) ? 3 : 2)
                             .attr('fill', () => {
-                                if (highlightedSets.length > 0) {
-                                    return highlightedSets.includes(s.id)
+                                if (highlightedSetsRef.current.length > 0) {
+                                    return highlightedSetsRef.current.includes(s.id)
                                         ? (isDark ? `${s.color}35` : `${s.color}45`)
                                         : (isDark ? `${s.color}05` : `${s.color}08`);
                                 }
@@ -510,7 +516,7 @@ export default function SetsInclusionAnimation({ speed = 1 }: SetsInclusionProps
                 d3.select(containerRef.current).selectAll('.absolute.z-10.pointer-events-none').remove();
             }
         };
-    }, [isDark, speed, selectedSet, highlightedSets]);
+    }, [isDark, speed]);
 
     // Separate effect for visibility toggling — avoids re-rendering the entire D3 chart
     useEffect(() => {
